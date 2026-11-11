@@ -5,7 +5,7 @@ Customer-support **intent classification** that gets better in two ways:
 1. **Batch training (OPRO-style)** — Rewrite the system prompt across several rounds using train-set accuracy and mistake summaries.
 2. **Live feedback** — Confirm or correct predictions in chat; new rules go into **ChromaDB** and are retrieved at classify time.
 
-The underlying LLM model stays fixed (set `OPENROUTER_MODEL` in `.env`, default `meta-llama/llama-3.2-3b-instruct` via [OpenRouter](https://openrouter.ai/)). What changes is the **prompt** (from training) and **lesson memory** (from training mistakes and user feedback).
+The underlying LLM model stays fixed (set `OPENROUTER_MODEL` in `.env`, default **`openai/gpt-4o-mini`** via [OpenRouter](https://openrouter.ai/)). What changes is the **prompt** (from training) and **lesson memory** (from training mistakes and user feedback).
 
 ## Architecture
 
@@ -62,7 +62,7 @@ Edit `.env`:
 
 ```env
 OPENROUTER_API_KEY=your_key_here
-OPENROUTER_MODEL=meta-llama/llama-3.2-3b-instruct
+OPENROUTER_MODEL=openai/gpt-4o-mini
 ```
 
 `.gitignore` already excludes `.env`, `memory_db/`, and `results.json`.
