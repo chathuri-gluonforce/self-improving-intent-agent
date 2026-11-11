@@ -1,0 +1,11 @@
+[
+  {"text": "Link bank payment 7781 to invoice INV-55", "intent": "match_invoice"},
+  {"text": "Which payments still have no invoice?", "intent": "unmatched_items"},
+  {"text": "Upload the PDF for last week's invoices", "intent": "upload_document"},
+  {"text": "The invoice is Rs. 80,000 and the bank paid Rs. 62,000", "intent": "amount_mismatch"},
+  {"text": "Is September reconciliation finished?", "intent": "recon_status"},
+  {"text": "Add Buwaneka to the Hawkeye users", "intent": "user_access"},
+  {"text": "Who last edited this match?", "intent": "audit_query"},
+  {"text": "Hawkeye says invalid password", "intent": "login_help"},
+  {"text": "what time do you close?", "intent": "other"}
+]

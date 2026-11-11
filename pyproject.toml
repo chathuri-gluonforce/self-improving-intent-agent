@@ -1,0 +1,45 @@
+[project]
+name = "intent-agent"
+version = "0.1.0"
+description = "Self-improving customer intent classifier (OPRO + Chroma memory)"
+readme = "README.md"
+authors = [
+    { name = "Chathuri Perera", email = "chathuri@gluonforce.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "chromadb>=1.5.9",
+    "fastapi>=0.162.2",
+    "openai>=3.46.0",
+    "pydantic-settings>=2.8.0",
+    "pandas>=3.1.1",
+    "python-dotenv>=1.2.4",
+    "streamlit>=1.67.0",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+intent-agent = "intent_agent:main"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.0",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+src = [".", "src"]
+
+[tool.ruff.lint]
+# E/F/UP only so `ruff check` passes without reformatting existing app code.
+# Optional stricter pass: `uv run ruff check . --select I,B --fix`
+select = ["E", "F", "UP"]
+ignore = ["E501", "E741"]
+
+[tool.ruff.lint.per-file-ignores]
+"feedback.py" = ["F401"]
+
+[build-system]
+requires = ["uv_build>=0.12.9,<0.13.0"]
+build-backend = "uv_build"
