@@ -2,10 +2,10 @@
 from agent import classify
 import memory
 
-def evaluate(data, prompt, learn=False):
+def evaluate(data, prompt, learn=False, use_memory=True):
     correct, mistakes = 0, []
     for ex in data:
-        pred, used = classify(ex["text"], prompt)
+        pred, used = classify(ex["text"], prompt, use_memory=use_memory)
         ok = pred == ex["intent"]
         correct += ok
         if learn:

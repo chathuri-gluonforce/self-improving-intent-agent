@@ -1,44 +1,93 @@
 import json
 import os
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from agent import classify
+
+import memory
+from agent import DEFAULT_PROMPT, classify
+from evaluate import evaluate
 from main import run_training
 from optimizer import make_lesson
-import memory
 
 app = FastAPI(title="Self-Improving Intent Agent")
 
+
 class Message(BaseModel):
     text: str
+    use_memory: bool = True
+    use_best_prompt: bool = True
+
 
 class Feedback(BaseModel):
     text: str
     predicted: str
     correct: str
 
+
 def load_results():
     if not os.path.exists("results.json"):
         raise HTTPException(404, "No results yet. Call POST /train first.")
-    return json.load(open("results.json"))
+    with open("results.json") as f:
+        return json.load(f)
+
+
+def save_results(data):
+    with open("results.json", "w") as f:
+        json.dump(data, f, indent=2)
+
 
 def get_prompt():
     if os.path.exists("results.json"):
-        return json.load(open("results.json"))["best_prompt"]
-    return "Classify the customer message intent."
+        with open("results.json") as f:
+            return json.load(f)["best_prompt"]
+    return DEFAULT_PROMPT
+
+
+def resolve_prompt(use_best_prompt: bool) -> str:
+    if use_best_prompt and os.path.exists("results.json"):
+        with open("results.json") as f:
+            return json.load(f)["best_prompt"]
+    return DEFAULT_PROMPT
+
+
+def ensure_before_score(data):
+    """Score the default prompt with no memory once, then cache it."""
+    if "test_score_before" in data:
+        return data
+    with open("data/test.json") as f:
+        test = json.load(f)
+    score, _ = evaluate(test, DEFAULT_PROMPT, learn=False, use_memory=False)
+    data["test_score_before"] = score
+    save_results(data)
+    return data
+
 
 @app.post("/train")
 def train(rounds: int = 5):
     return run_training(rounds)
 
+
 @app.get("/results")
-def results():
-    return load_results()
+def results(ensure_before: bool = False):
+    data = load_results()
+    if ensure_before:
+        data = ensure_before_score(data)
+    return data
+
 
 @app.post("/classify")
 def classify_msg(msg: Message):
-    intent, _ = classify(msg.text, get_prompt())
-    return {"text": msg.text, "intent": intent}
+    prompt = resolve_prompt(msg.use_best_prompt)
+    intent, used_ids = classify(msg.text, prompt, use_memory=msg.use_memory)
+    lessons = memory.lessons_by_ids(used_ids) if msg.use_memory else []
+    return {
+        "text": msg.text,
+        "intent": intent,
+        "prompt": prompt,
+        "lessons": lessons,
+    }
+
 
 @app.post("/feedback")
 def feedback(fb: Feedback):
@@ -53,6 +102,7 @@ def feedback(fb: Feedback):
     memory.add(lesson)
     return {"learned": "corrected", "lesson": lesson}
 
+
 @app.get("/lessons")
 def lessons():
-    return [{"lesson": l, "score": s} for l, s in memory.all_lessons()]
+    return [{"lesson": lesson, "score": score} for lesson, score in memory.all_lessons()]

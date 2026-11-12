@@ -1,11 +1,29 @@
 [
-  {"text": "Link bank payment 7781 to invoice INV-55", "intent": "match_invoice"},
-  {"text": "Which payments still have no invoice?", "intent": "unmatched_items"},
-  {"text": "Upload the PDF for last week's invoices", "intent": "upload_document"},
-  {"text": "The invoice is Rs. 80,000 and the bank paid Rs. 62,000", "intent": "amount_mismatch"},
-  {"text": "Is September reconciliation finished?", "intent": "recon_status"},
-  {"text": "Add Buwaneka to the Hawkeye users", "intent": "user_access"},
-  {"text": "Who last edited this match?", "intent": "audit_query"},
-  {"text": "Hawkeye says invalid password", "intent": "login_help"},
+  {"text": "Who tied payment 9912 to invoice INV-88?", "intent": "audit_query"},
+  {"text": "Who signed off on yesterday's match?", "intent": "audit_query"},
+  {"text": "Who deleted the link between payment 12 and INV-7?", "intent": "audit_query"},
+
+  {"text": "Match statement line 7 to invoice 441 please", "intent": "match_invoice"},
+  {"text": "Link this BOC row to vendor bill 909", "intent": "match_invoice"},
+
+  {"text": "Uploading the BOC PDF for September now", "intent": "upload_document"},
+  {"text": "I'm adding last week's invoice scans to the system", "intent": "upload_document"},
+
+  {"text": "Invoice 50k, bank 47k — something's off", "intent": "amount_mismatch"},
+  {"text": "Don't match this — the paid amount is too small", "intent": "amount_mismatch"},
+
+  {"text": "Is October recon complete yet?", "intent": "recon_status"},
+  {"text": "How much of November matching is still open?", "intent": "recon_status"},
+
+  {"text": "Any bank lines still without an invoice?", "intent": "unmatched_items"},
+  {"text": "Which statement rows have no pairing yet?", "intent": "unmatched_items"},
+
+  {"text": "Grant Sanuki permission to upload statements only", "intent": "user_access"},
+  {"text": "Who can see the reconciliation workspace?", "intent": "user_access"},
+
+  {"text": "Hawkeye login failed again", "intent": "login_help"},
+  {"text": "Two-factor code expired before I could enter it", "intent": "login_help"},
+
+  {"text": "thanks for the help", "intent": "other"},
   {"text": "what time do you close?", "intent": "other"}
 ]

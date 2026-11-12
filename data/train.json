@@ -1,56 +1,97 @@
 [
-    {"text": "Match this bank payment to invoice INV-102", "intent": "match_invoice"},
-    {"text": "Please link the BOC statement row to the vendor invoice", "intent": "match_invoice"},
-    {"text": "Can you reconcile this payment with invoice 8890?", "intent": "match_invoice"},
-    {"text": "This bank line belongs to invoice A-441", "intent": "match_invoice"},
-    {"text": "Pair the statement entry with the correct invoice", "intent": "match_invoice"},
-  
-    {"text": "Which bank payments are still unmatched?", "intent": "unmatched_items"},
-    {"text": "Show invoices that have no bank payment", "intent": "unmatched_items"},
-    {"text": "Why is this transaction still unmatched?", "intent": "unmatched_items"},
-    {"text": "List all unmatched items for this week", "intent": "unmatched_items"},
-    {"text": "Are there any invoices not linked yet?", "intent": "unmatched_items"},
-  
-    {"text": "I want to upload this invoice PDF", "intent": "upload_document"},
-    {"text": "Please add the bank statement file", "intent": "upload_document"},
-    {"text": "Can I upload a scanned invoice?", "intent": "upload_document"},
-    {"text": "Here is the PDF of invoice INV-102", "intent": "upload_document"},
-    {"text": "Upload today's BOC statement", "intent": "upload_document"},
-  
-    {"text": "Invoice is Rs. 25000 but the bank paid Rs. 21000", "intent": "amount_mismatch"},
-    {"text": "The amounts don't match, there is a Rs. 4000 difference", "intent": "amount_mismatch"},
-    {"text": "Payment is much lower than the invoice total", "intent": "amount_mismatch"},
-    {"text": "There's a large gap between the invoice and the bank line", "intent": "amount_mismatch"},
-    {"text": "Bank shows 150000 but invoice is 165000, that's too far apart", "intent": "amount_mismatch"},
-  
-    {"text": "How far is this month's reconciliation?", "intent": "recon_status"},
-    {"text": "What's the status of the BOC recon?", "intent": "recon_status"},
-    {"text": "Is the August reconciliation complete?", "intent": "recon_status"},
-    {"text": "Give me a progress summary of matching", "intent": "recon_status"},
-    {"text": "How many items are left to reconcile today?", "intent": "recon_status"},
-  
-    {"text": "Please add Yehan as a user", "intent": "user_access"},
-    {"text": "Remove access for a staff member who left", "intent": "user_access"},
-    {"text": "Change this user's role to admin", "intent": "user_access"},
-    {"text": "Can I give Arunshala permission to upload invoices?", "intent": "user_access"},
-    {"text": "Who has access to this workspace?", "intent": "user_access"},
-  
-    {"text": "Who matched invoice INV-102?", "intent": "audit_query"},
-    {"text": "Show the audit log for yesterday", "intent": "audit_query"},
-    {"text": "Who changed the amount tolerance?", "intent": "audit_query"},
-    {"text": "I need to see who uploaded this statement", "intent": "audit_query"},
-    {"text": "Track who approved this match", "intent": "audit_query"},
-  
-    {"text": "I can't log in to Hawkeye", "intent": "login_help"},
-    {"text": "OTP is not coming for the Hawkeye app", "intent": "login_help"},
-    {"text": "I forgot my Hawkeye password", "intent": "login_help"},
-    {"text": "It keeps signing me out", "intent": "login_help"},
-    {"text": "Reset my login please", "intent": "login_help"},
-  
-    {"text": "hi", "intent": "other"},
-    {"text": "thanks", "intent": "other"},
-    {"text": "Are you a real person?", "intent": "other"},
-    {"text": "What are your working hours?", "intent": "other"},
-    {"text": "Who built this system?", "intent": "other"},
-    {"text": "good morning", "intent": "other"}
-  ]
+  {"text": "Match this bank payment to invoice INV-102", "intent": "match_invoice"},
+  {"text": "Please link the BOC statement row to the vendor invoice", "intent": "match_invoice"},
+  {"text": "Can you reconcile this payment with invoice 8890?", "intent": "match_invoice"},
+  {"text": "This bank line belongs to invoice A-441", "intent": "match_invoice"},
+  {"text": "Pair the statement entry with the correct invoice", "intent": "match_invoice"},
+
+  {"text": "Which bank payments are still unmatched?", "intent": "unmatched_items"},
+  {"text": "Show invoices that have no bank payment", "intent": "unmatched_items"},
+  {"text": "Why is this transaction still unmatched?", "intent": "unmatched_items"},
+  {"text": "List all unmatched items for this week", "intent": "unmatched_items"},
+  {"text": "Are there any invoices not linked yet?", "intent": "unmatched_items"},
+
+  {"text": "I want to upload this invoice PDF", "intent": "upload_document"},
+  {"text": "Please add the bank statement file", "intent": "upload_document"},
+  {"text": "Can I upload a scanned invoice?", "intent": "upload_document"},
+  {"text": "Here is the PDF of invoice INV-102", "intent": "upload_document"},
+  {"text": "Upload today's BOC statement", "intent": "upload_document"},
+
+  {"text": "Invoice is Rs. 25000 but the bank paid Rs. 21000", "intent": "amount_mismatch"},
+  {"text": "The amounts don't match, there is a Rs. 4000 difference", "intent": "amount_mismatch"},
+  {"text": "Payment is much lower than the invoice total", "intent": "amount_mismatch"},
+  {"text": "There's a large gap between the invoice and the bank line", "intent": "amount_mismatch"},
+  {"text": "Bank shows 150000 but invoice is 165000, that's too far apart", "intent": "amount_mismatch"},
+
+  {"text": "How far is this month's reconciliation?", "intent": "recon_status"},
+  {"text": "What's the status of the BOC recon?", "intent": "recon_status"},
+  {"text": "Is the August reconciliation complete?", "intent": "recon_status"},
+  {"text": "Give me a progress summary of matching", "intent": "recon_status"},
+  {"text": "How many items are left to reconcile today?", "intent": "recon_status"},
+
+  {"text": "Please add Yehan as a user", "intent": "user_access"},
+  {"text": "Remove access for a staff member who left", "intent": "user_access"},
+  {"text": "Change this user's role to admin", "intent": "user_access"},
+  {"text": "Can I give Arunshala permission to upload invoices?", "intent": "user_access"},
+  {"text": "Who has access to this workspace?", "intent": "user_access"},
+
+  {"text": "Who matched invoice INV-102?", "intent": "audit_query"},
+  {"text": "Show the audit log for yesterday", "intent": "audit_query"},
+  {"text": "Who changed the amount tolerance?", "intent": "audit_query"},
+  {"text": "I need to see who uploaded this statement", "intent": "audit_query"},
+  {"text": "Track who approved this match", "intent": "audit_query"},
+
+  {"text": "I can't log in to Hawkeye", "intent": "login_help"},
+  {"text": "OTP is not coming for the Hawkeye app", "intent": "login_help"},
+  {"text": "I forgot my Hawkeye password", "intent": "login_help"},
+  {"text": "It keeps signing me out", "intent": "login_help"},
+  {"text": "Reset my login please", "intent": "login_help"},
+
+  {"text": "hi", "intent": "other"},
+  {"text": "thanks", "intent": "other"},
+  {"text": "Are you a real person?", "intent": "other"},
+  {"text": "What are your working hours?", "intent": "other"},
+  {"text": "Who built this system?", "intent": "other"},
+  {"text": "good morning", "intent": "other"},
+
+  {"text": "Who matched payment 7781 to invoice INV-55?", "intent": "audit_query"},
+  {"text": "Who last approved this reconciliation match?", "intent": "audit_query"},
+  {"text": "Show me who changed the tolerance for matching", "intent": "audit_query"},
+  {"text": "I need to know who uploaded the August BOC file", "intent": "audit_query"},
+  {"text": "Track who linked this invoice to the bank line", "intent": "audit_query"},
+  {"text": "Can you review who touched this match yesterday?", "intent": "audit_query"},
+
+  {"text": "I'm attaching the invoice scan — match it once it's in", "intent": "match_invoice"},
+  {"text": "Use this PDF to pair payment 442 with INV-200", "intent": "match_invoice"},
+  {"text": "Statement row 18 should go with invoice A-09", "intent": "match_invoice"},
+  {"text": "Here's the file — now link it to the right payment", "intent": "match_invoice"},
+
+  {"text": "Attached is today's bank statement file", "intent": "upload_document"},
+  {"text": "I'll drop the invoice PDF in the portal now", "intent": "upload_document"},
+  {"text": "Adding scanned invoices for last week", "intent": "upload_document"},
+  {"text": "I'm sending the BOC extract — please ingest it", "intent": "upload_document"},
+
+  {"text": "Paid 62,000 but the invoice says 80,000", "intent": "amount_mismatch"},
+  {"text": "Totals don't agree — don't force a match", "intent": "amount_mismatch"},
+  {"text": "There's a 15k gap between bank and invoice", "intent": "amount_mismatch"},
+  {"text": "Paid 47k against a 50k invoice — flag the variance", "intent": "amount_mismatch"},
+
+  {"text": "How far along is September recon?", "intent": "recon_status"},
+  {"text": "Are we done matching for this month?", "intent": "recon_status"},
+  {"text": "Progress on BOC reconciliation today?", "intent": "recon_status"},
+  {"text": "We're at 80% matched — what's left for this cycle?", "intent": "recon_status"},
+
+  {"text": "What's still unmatched on the bank side?", "intent": "unmatched_items"},
+  {"text": "Any invoices without a payment yet?", "intent": "unmatched_items"},
+  {"text": "List open items we haven't paired", "intent": "unmatched_items"},
+  {"text": "Show orphans on the statement with no invoice", "intent": "unmatched_items"},
+
+  {"text": "Add Buwaneka with upload-only access", "intent": "user_access"},
+  {"text": "Remove Yehan from the Hawkeye workspace", "intent": "user_access"},
+  {"text": "Can you make her a read-only user?", "intent": "user_access"},
+  {"text": "Grant Dilani permission to view users but not match", "intent": "user_access"},
+
+  {"text": "Hawkeye keeps saying invalid password", "intent": "login_help"},
+  {"text": "Can't sign in — OTP never arrives", "intent": "login_help"},
+  {"text": "Login works on web but not the mobile app", "intent": "login_help"}
+]

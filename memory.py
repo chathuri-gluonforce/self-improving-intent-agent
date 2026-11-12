@@ -10,6 +10,7 @@ def add(text):                      # Create
         #closest, similar meaning lessons ignore in here. not save again. 
         if r["distances"][0][0] < 0.2:   # very similar lesson already saved
             return
+    #Chroma runs its default embedder (MiniLM, 384-d) on that text → vector.
     col.add(ids=[str(uuid.uuid4())], documents=[text], metadatas=[{"score": 0}])
     print(f"saved: score=0  {text}")
 
@@ -34,3 +35,16 @@ def all_lessons():
     for d, m in zip(a["documents"], a["metadatas"]):
         print(f"score={m['score']}  {d}")
     return [(d, m["score"]) for d, m in zip(a["documents"], a["metadatas"])]
+
+
+def lessons_by_ids(ids):
+    """Read lesson text and score for ids already returned by search. Does not write."""
+    if not ids:
+        return []
+    found = col.get(ids=list(ids))
+    by_id = {
+        item_id: {"lesson": doc, "score": meta["score"]}
+        for item_id, doc, meta in zip(found["ids"], found["documents"], found["metadatas"])
+    }
+    return [{"lesson": by_id[item_id]["lesson"], "score": by_id[item_id]["score"]}
+            for item_id in ids if item_id in by_id]

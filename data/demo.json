@@ -1,0 +1,14 @@
+[
+  {"text": "Who tied payment 9912 to invoice INV-88?", "intent": "audit_query"},
+  {"text": "Who signed off on yesterday's match?", "intent": "audit_query"},
+  {"text": "Invoice 50k, bank 47k — something's off", "intent": "amount_mismatch"},
+  {"text": "Don't match this — the paid amount is too small", "intent": "amount_mismatch"},
+  {"text": "Any bank lines still without an invoice?", "intent": "unmatched_items"},
+  {"text": "Which statement rows have no pairing yet?", "intent": "unmatched_items"},
+  {"text": "Is October recon complete yet?", "intent": "recon_status"},
+  {"text": "How much of November matching is still open?", "intent": "recon_status"},
+  {"text": "Uploading the statement PDF for September now", "intent": "upload_document"},
+  {"text": "Match statement line 7 to invoice 441 please", "intent": "match_invoice"},
+  {"text": "Grant Sanuki permission to upload statements only", "intent": "user_access"},
+  {"text": "Two-factor code expired before I could enter it", "intent": "login_help"}
+]
