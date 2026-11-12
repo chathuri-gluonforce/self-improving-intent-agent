@@ -1,5 +1,5 @@
-from llm import ask
-import memory
+from intent_agent.llm import ask
+from intent_agent.memory import store as memory
 
 LABELS = [
     "match_invoice",

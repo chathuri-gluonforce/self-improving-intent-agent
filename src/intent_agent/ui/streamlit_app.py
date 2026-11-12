@@ -4,7 +4,8 @@ import pandas as pd
 import requests
 import streamlit as st
 
-from agent import DEFAULT_PROMPT, LABELS
+from intent_agent.agent.classify import DEFAULT_PROMPT, LABELS
+from intent_agent.config import DEMO_FILE
 
 API = "http://127.0.0.1:8000"
 
@@ -347,7 +348,7 @@ with tab_compare:
 with tab_demo:
     st.write("Same hard messages, scored twice: before training and after training.")
     try:
-        demo = json.load(open("data/demo.json"))
+        demo = json.load(open(DEMO_FILE))
     except OSError:
         demo = []
         st.error("data/demo.json is missing.")

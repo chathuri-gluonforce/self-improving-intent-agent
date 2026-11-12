@@ -9,7 +9,9 @@ from pathlib import Path
 
 import chromadb
 
-PATH = Path("memory_db")
+from intent_agent.config import MEMORY_DB_DIR
+
+PATH = Path(MEMORY_DB_DIR)
 COLLECTION = "lessons"
 
 

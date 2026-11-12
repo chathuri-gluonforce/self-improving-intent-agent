@@ -1,14 +1,29 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ENV_FILE = PROJECT_ROOT / ".env"
+
+DATA_DIR = PROJECT_ROOT / "data"
+TRAIN_FILE = DATA_DIR / "train.json"
+TEST_FILE = DATA_DIR / "test.json"
+DEMO_FILE = DATA_DIR / "demo.json"
+
+STORAGE_DIR = PROJECT_ROOT / "storage"
+MEMORY_DB_DIR = STORAGE_DIR / "memory_db"
+RESULTS_FILE = STORAGE_DIR / "results.json"
+
+STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment and optional `.env` file."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=ENV_FILE,
         env_file_encoding="utf-8",
         extra="ignore",
     )

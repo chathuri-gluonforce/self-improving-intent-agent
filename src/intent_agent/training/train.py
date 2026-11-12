@@ -1,11 +1,12 @@
 import json
-import memory
-from evaluate import evaluate
-from optimizer import new_prompt, make_lesson
+from intent_agent.config import RESULTS_FILE, TEST_FILE, TRAIN_FILE
+from intent_agent.memory import store as memory
+from intent_agent.evaluation.evaluate import evaluate
+from intent_agent.optimizer.opro import new_prompt, make_lesson
 
 def run_training(rounds=5):
-    train = json.load(open("data/train.json"))
-    test = json.load(open("data/test.json"))
+    train = json.load(open(TRAIN_FILE))
+    test = json.load(open(TEST_FILE))
     prompt = "Classify the customer message intent."
     history, log = [], []
 
@@ -23,7 +24,7 @@ def run_training(rounds=5):
     best = max(history, key=lambda x: x[1])[0]
     test_score, _ = evaluate(test, best)
     result = {"log": log, "best_prompt": best, "test_score": test_score}
-    json.dump(result, open("results.json", "w"), indent=2)
+    json.dump(result, open(RESULTS_FILE, "w"), indent=2)
     return result
 
 if __name__ == "__main__":

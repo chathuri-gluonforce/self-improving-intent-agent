@@ -4,11 +4,12 @@ import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-import memory
-from agent import DEFAULT_PROMPT, classify
-from evaluate import evaluate
-from main import run_training
-from optimizer import make_lesson
+from intent_agent.agent.classify import DEFAULT_PROMPT, classify
+from intent_agent.config import RESULTS_FILE, TEST_FILE
+from intent_agent.evaluation.evaluate import evaluate
+from intent_agent.memory import store as memory
+from intent_agent.optimizer.opro import make_lesson
+from intent_agent.training.train import run_training
 
 app = FastAPI(title="Self-Improving Intent Agent")
 
@@ -26,27 +27,27 @@ class Feedback(BaseModel):
 
 
 def load_results():
-    if not os.path.exists("results.json"):
+    if not os.path.exists(RESULTS_FILE):
         raise HTTPException(404, "No results yet. Call POST /train first.")
-    with open("results.json") as f:
+    with open(RESULTS_FILE) as f:
         return json.load(f)
 
 
 def save_results(data):
-    with open("results.json", "w") as f:
+    with open(RESULTS_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
 
 def get_prompt():
-    if os.path.exists("results.json"):
-        with open("results.json") as f:
+    if os.path.exists(RESULTS_FILE):
+        with open(RESULTS_FILE) as f:
             return json.load(f)["best_prompt"]
     return DEFAULT_PROMPT
 
 
 def resolve_prompt(use_best_prompt: bool) -> str:
-    if use_best_prompt and os.path.exists("results.json"):
-        with open("results.json") as f:
+    if use_best_prompt and os.path.exists(RESULTS_FILE):
+        with open(RESULTS_FILE) as f:
             return json.load(f)["best_prompt"]
     return DEFAULT_PROMPT
 
@@ -55,7 +56,7 @@ def ensure_before_score(data):
     """Score the default prompt with no memory once, then cache it."""
     if "test_score_before" in data:
         return data
-    with open("data/test.json") as f:
+    with open(TEST_FILE) as f:
         test = json.load(f)
     score, _ = evaluate(test, DEFAULT_PROMPT, learn=False, use_memory=False)
     data["test_score_before"] = score

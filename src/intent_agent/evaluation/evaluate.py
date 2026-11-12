@@ -1,6 +1,6 @@
 #gives the score, which is the learning signal
-from agent import classify
-import memory
+from intent_agent.agent.classify import classify
+from intent_agent.memory import store as memory
 
 def evaluate(data, prompt, learn=False, use_memory=True):
     correct, mistakes = 0, []

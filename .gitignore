@@ -21,9 +21,8 @@ ENV/
 .env.*
 !.env.example
 
-# This project — generated / local runtime data
-memory_db/
-results.json
+# This project — generated / local runtime data (Chroma memory_db/ and results.json)
+storage/
 
 # Test / type / lint caches
 .pytest_cache/

@@ -1,6 +1,6 @@
 import re
-from llm import ask
-from agent import LABELS
+from intent_agent.llm import ask
+from intent_agent.agent.classify import LABELS
 
 def new_prompt(history, mistakes):
     def parts(item):

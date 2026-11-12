@@ -1,7 +1,9 @@
 import uuid
 import chromadb
 
-db = chromadb.PersistentClient(path="memory_db")
+from intent_agent.config import MEMORY_DB_DIR
+
+db = chromadb.PersistentClient(path=str(MEMORY_DB_DIR))
 col = db.get_or_create_collection("lessons")
 
 def add(text):                      # Create

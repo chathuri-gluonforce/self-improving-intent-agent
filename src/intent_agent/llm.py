@@ -1,6 +1,6 @@
 from openai import OpenAI
 
-from config import get_settings
+from intent_agent.config import get_settings
 
 _settings = get_settings()
 client = OpenAI(
