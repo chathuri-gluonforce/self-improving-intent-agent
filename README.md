@@ -12,18 +12,18 @@ The underlying LLM model stays fixed (set `OPENROUTER_MODEL` in `.env`, default 
 ```mermaid
 flowchart LR
   subgraph batch [Batch training]
-    T[data/train.json] --> E[evaluate]
-    E --> M[memory.add lessons]
-    E --> O[optimizer new prompt]
-    O --> R[results.json]
+    T[data/train.json] --> E[evaluation]
+    E --> M[memory.store add lessons]
+    E --> O[optimizer.opro new prompt]
+    O --> R[storage/results.json]
   end
   subgraph runtime [Inference]
-    R --> C[classify]
-    DB[(memory_db Chroma)] --> C
+    R --> C[agent.classify]
+    DB[(storage/memory_db Chroma)] --> C
     C --> LLM[OpenRouter LLM]
   end
   subgraph ui [Streamlit + FastAPI]
-    APP[app.py] --> API[api.py]
+    APP[ui/streamlit_app.py] --> API[api/app.py]
     API --> batch
     API --> runtime
   end
@@ -31,13 +31,13 @@ flowchart LR
 
 | Piece | Role |
 |-------|------|
-| `results.json` | Best prompt and training log (written after `/train` or `main.py`) |
-| `memory_db/` | Persistent Chroma collection `lessons` — short rules + reinforcement scores |
-| `get_prompt()` | Uses `best_prompt` from `results.json`, or a default if you have not trained yet |
+| `storage/results.json` | Best prompt and training log (written after `/train` or the training module) |
+| `storage/memory_db/` | Persistent Chroma collection `lessons` — short rules + reinforcement scores |
+| `get_prompt()` | Uses `best_prompt` from `storage/results.json`, or a default if you have not trained yet |
 
 ## Intent labels
 
-`order_status`, `refund`, `complaint`, `greeting`, `cancel_order`, `delivery_info`, `account_help`, `other`
+`match_invoice`, `unmatched_items`, `upload_document`, `amount_mismatch`, `recon_status`, `user_access`, `audit_query`, `login_help`, `other`
 
 ## Requirements
 
@@ -65,13 +65,14 @@ OPENROUTER_API_KEY=your_key_here
 OPENROUTER_MODEL=openai/gpt-4o-mini
 ```
 
-`.gitignore` already excludes `.env`, `memory_db/`, and `results.json`.
+`.gitignore` already excludes `.env` and `storage/` (Chroma `memory_db/` and `results.json`).
 
-## Lint & Git
+## Lint, tests & Git
 
 ```bash
 uv sync --group dev
 uv run ruff check .
+uv run pytest
 ```
 
 Before pushing to GitHub, see **[CONTRIBUTING.md](CONTRIBUTING.md)** (what to commit, branch workflow, first upload).
@@ -83,7 +84,7 @@ Use two terminals from the project root.
 **Terminal 1 — API**
 
 ```bash
-uv run uvicorn api:app --reload
+uv run uvicorn intent_agent.api.app:app --reload
 ```
 
 Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
@@ -91,7 +92,7 @@ Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 **Terminal 2 — Streamlit**
 
 ```bash
-uv run streamlit run app.py
+uv run streamlit run src/intent_agent/ui/streamlit_app.py
 ```
 
 ### Streamlit tabs
@@ -110,12 +111,12 @@ uv run streamlit run app.py
 3. **Reinforce** — Lessons used during a call get score +1 / −1 when `learn=True` (training) or via `/feedback` (chat).
 4. **Prune** — `memory.cleanup()` removes lessons with score ≤ −2.
 5. **Optimize prompt** — Meta-prompt with history + mistakes → new text inside `<PROMPT></PROMPT>`.
-6. **Pick best** — Highest train score → evaluate on `data/test.json` → write `results.json`.
+6. **Pick best** — Highest train score → evaluate on `data/test.json` → write `storage/results.json`.
 
 ### CLI only
 
 ```bash
-uv run python main.py
+uv run python -m intent_agent.training.train
 ```
 
 Change rounds in `run_training(rounds=5)` or use `POST /train?rounds=5`.
@@ -127,14 +128,14 @@ Change rounds in `run_training(rounds=5)` or use `POST /train?rounds=5`.
    - **Confirmed** (`correct == predicted`) — Bump scores on lessons that were used; store a simple confirmation rule.
    - **Corrected** — Penalize used lessons; `make_lesson()` writes a new rule and saves it.
 
-You can use chat **without** running training first; classification falls back to the default prompt until `results.json` exists.
+You can use chat **without** running training first; classification falls back to the default prompt until `storage/results.json` exists.
 
 ## API reference
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/train?rounds=5` | Run full training loop; returns log, `best_prompt`, `test_score` |
-| `GET` | `/results` | Read `results.json` (**404** until training has run) |
+| `GET` | `/results` | Read `storage/results.json` (**404** until training has run) |
 | `POST` | `/classify` | `{"text": "..."}` → intent (best or default prompt + memory) |
 | `POST` | `/feedback` | `{"text", "predicted", "correct"}` → learning + optional `lesson` text |
 | `GET` | `/lessons` | `[{"lesson", "score"}, ...]` |
@@ -144,11 +145,11 @@ You can use chat **without** running training first; classification falls back t
 ```bash
 curl -s -X POST http://127.0.0.1:8000/classify \
   -H 'Content-Type: application/json' \
-  -d '{"text": "Where is my parcel?"}'
+  -d '{"text": "Who tied payment 9912 to invoice INV-88?"}'
 
 curl -s -X POST http://127.0.0.1:8000/feedback \
   -H 'Content-Type: application/json' \
-  -d '{"text": "Where is my parcel?", "predicted": "order_status", "correct": "order_status"}'
+  -d '{"text": "Who tied payment 9912 to invoice INV-88?", "predicted": "match_invoice", "correct": "audit_query"}'
 ```
 
 ## Data format
@@ -157,53 +158,66 @@ JSON arrays of `{ "text", "intent" }`:
 
 - `data/train.json` — optimization + lesson creation during training  
 - `data/test.json` — held-out metric after training  
+- `data/demo.json` — hard messages for the Demo set tab  
 
 ## Project layout
 
-| File | Role |
-|------|------|
-| `main.py` | Training loop |
-| `evaluate.py` | Accuracy + mistakes; optional memory score updates |
-| `optimizer.py` | New prompts + `make_lesson()` from errors |
-| `agent.py` | Classify with labels + retrieved lessons |
-| `config.py` | Typed settings from `.env` (Pydantic Settings) |
-| `llm.py` | OpenRouter client |
-| `memory.py` | Chroma persistence, search, dedupe, cleanup |
-| `api.py` | HTTP API (train, classify, feedback, lessons) |
-| `app.py` | Streamlit UI |
-| `results.json` | Generated — `best_prompt`, `log`, `test_score` |
-| `memory_db/` | Generated — Chroma data directory |
+```
+intent-agent/
+├── src/intent_agent/      # the package
+│   ├── config.py          # settings from .env + all project paths
+│   ├── llm.py             # OpenRouter call
+│   ├── agent/             # classify, LABELS, DEFAULT_PROMPT
+│   ├── memory/            # Chroma lesson store (add, search, update, cleanup)
+│   ├── optimizer/         # OPRO prompt rewrite + make_lesson
+│   ├── evaluation/        # accuracy + mistakes, memory score updates
+│   ├── training/          # run_training loop
+│   ├── tools/             # agent tools (to be added)
+│   ├── api/               # FastAPI app
+│   └── ui/                # Streamlit app
+├── data/                  # train.json, test.json, demo.json
+├── storage/               # memory_db/ and results.json (gitignored, generated)
+├── scripts/               # inspect_chroma.py (read-only memory inspector)
+└── tests/                 # import smoke tests
+```
 
 ## Configuration
 
 | Knob | Where |
 |------|--------|
-| Model / OpenRouter | `.env` — see `config.py` (`OPENROUTER_MODEL`, `OPENROUTER_BASE_URL`, `OPENROUTER_API_KEY`) |
-| Training rounds | `main.py` or `POST /train?rounds=` |
-| Mistakes → lessons per round | `main.py` — top **3** |
-| Mistakes in meta-prompt | `optimizer.py` — up to **5** |
-| Lessons retrieved per message | `agent.py` — `memory.search(..., k=3)` |
-| Dedupe threshold | `memory.py` — distance under **0.2** skips add |
-| Prune threshold | `memory.py` — `cleanup(min_score=-2)` |
+| Model / OpenRouter | `.env` — see `src/intent_agent/config.py` (`OPENROUTER_MODEL`, `OPENROUTER_BASE_URL`, `OPENROUTER_API_KEY`) |
+| File paths | `src/intent_agent/config.py` — `DATA_DIR`, `TRAIN_FILE`, `TEST_FILE`, `DEMO_FILE`, `STORAGE_DIR`, `MEMORY_DB_DIR`, `RESULTS_FILE` |
+| Training rounds | `training/train.py` or `POST /train?rounds=` |
+| Mistakes → lessons per round | `training/train.py` — top **3** |
+| Mistakes in meta-prompt | `optimizer/opro.py` — up to **5** |
+| Lessons retrieved per message | `agent/classify.py` — `memory.search(..., k=3)` |
+| Dedupe threshold | `memory/store.py` — distance under **0.2** skips add |
+| Prune threshold | `memory/store.py` — `cleanup(min_score=-2)` |
+
+## Inspecting ChromaDB
+
+```bash
+uv run python scripts/inspect_chroma.py
+```
 
 ## Resetting ChromaDB (lesson memory)
 
-Lessons are stored under **`memory_db/`** (collection **`lessons`**).
+Lessons are stored under **`storage/memory_db/`** (collection **`lessons`**).
 
-1. **Stop** uvicorn, Streamlit, and any `python main.py` run (avoid file locks).
+1. **Stop** uvicorn, Streamlit, and any training run (avoid file locks).
 2. Delete Chroma data:
 
    ```bash
-   rm -rf memory_db
+   rm -rf storage/memory_db
    ```
 
 3. **(Optional)** Drop saved prompt and training log:
 
    ```bash
-   rm -f results.json
+   rm -f storage/results.json
    ```
 
-4. Train or chat again — `memory_db/` is recreated on the next `memory.add()`.
+4. Train or chat again — `storage/memory_db/` is recreated on the next start.
 
 `memory.cleanup()` only removes weak lessons (score ≤ −2), not the whole DB. There is no reset HTTP endpoint.
 
@@ -211,11 +225,11 @@ Lessons are stored under **`memory_db/`** (collection **`lessons`**).
 
 | Symptom | Likely cause |
 |---------|----------------|
-| Streamlit: “Could not reach the backend” | Start `uvicorn api:app` on port **8000** (matches `API` in `app.py`). |
-| `/results` or classify errors about missing file | Run training once, or rely on default prompt until `results.json` exists. |
-| Sidebar empty but train tab shows lessons | Update `app.py` — sidebar should load lessons **after** tabs; restart Streamlit after pulls. |
+| Streamlit: “Could not reach the API” | Start `uv run uvicorn intent_agent.api.app:app` on port **8000** (matches `API` in `ui/streamlit_app.py`). |
+| `ModuleNotFoundError: intent_agent` | Run `uv sync` so the package is installed from `src/`. |
+| `/results` or classify errors about missing file | Run training once, or rely on default prompt until `storage/results.json` exists. |
 | Training is slow | Each round calls the LLM for every example plus meta-prompt / lesson writes; reduce `rounds` or shrink `train.json` for demos. |
-| Duplicate or noisy lessons | Tighten dedupe in `memory.py` or run `rm -rf memory_db` for a clean memory slate. |
+| Duplicate or noisy lessons | Tighten dedupe in `memory/store.py` or run `rm -rf storage/memory_db` for a clean memory slate. |
 
 ## Author
 

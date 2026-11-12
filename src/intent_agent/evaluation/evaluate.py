@@ -1,11 +1,11 @@
 #gives the score, which is the learning signal
-from agent import classify
-import memory
+from intent_agent.agent.classify import classify
+from intent_agent.memory import store as memory
 
-def evaluate(data, prompt, learn=False):
+def evaluate(data, prompt, learn=False, use_memory=True):
     correct, mistakes = 0, []
     for ex in data:
-        pred, used = classify(ex["text"], prompt)
+        pred, used = classify(ex["text"], prompt, use_memory=use_memory)
         ok = pred == ex["intent"]
         correct += ok
         if learn:
