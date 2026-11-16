@@ -1,7 +1,8 @@
 import uuid
 import chromadb
 
-from intent_agent.config import MEMORY_DB_DIR
+from intent_agent.config import MEMORY_DB_DIR, get_settings
+#chroma default embedder is MiniLM, 384-d
 
 db = chromadb.PersistentClient(path=str(MEMORY_DB_DIR))
 col = db.get_or_create_collection("lessons")
@@ -14,7 +15,8 @@ def add(text):                      # Create
             return
     #Chroma runs its default embedder (MiniLM, 384-d) on that text → vector.
     col.add(ids=[str(uuid.uuid4())], documents=[text], metadatas=[{"score": 0}])
-    print(f"saved: score=0  {text}")
+    if get_settings().debug:
+        print(f"saved: score=0  {text}")
 
 def search(query, k=3):             # Read
     if col.count() == 0:
@@ -35,7 +37,8 @@ def cleanup(min_score=-2):          # Delete
 def all_lessons():
     a = col.get()
     for d, m in zip(a["documents"], a["metadatas"]):
-        print(f"score={m['score']}  {d}")
+        if get_settings().debug:
+            print(f"score={m['score']}  {d}")
     return [(d, m["score"]) for d, m in zip(a["documents"], a["metadatas"])]
 
 

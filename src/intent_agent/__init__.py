@@ -1,2 +1,6 @@
+from intent_agent.config import get_settings
+
+
 def main() -> None:
-    print("Hello from intent-agent!")
+    if get_settings().debug:
+        print("Hello from intent-agent!")

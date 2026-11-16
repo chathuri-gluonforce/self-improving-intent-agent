@@ -1,255 +1,219 @@
 # Self-Improving Intent Agent
 
-A reconciliation **intent classifier** that improves without changing the underlying model. The LLM stays frozen. What improves is:
+A customer-message intent classifier for reconciliation workflows. It uses an
+OpenRouter-hosted language model for classification and improves its behavior
+through prompt optimization and a persistent collection of lessons. It does
+not fine-tune the language model.
 
-1. **The prompt**, through batch training (OPRO-style rewrites scored on training data).
-2. **The memory**, through lessons stored in ChromaDB. Lessons come from training mistakes and from user feedback in chat.
+## What it does
 
-The LLM is called through [OpenRouter](https://openrouter.ai/). The default model is `openai/gpt-4o-mini`, set by `OPENROUTER_MODEL` in `.env`.
-
-## Intent labels
-
-| Label | Shown in UI as |
-|-------|----------------|
-| `match_invoice` | Match invoice |
-| `unmatched_items` | Unmatched items |
-| `upload_document` | Upload document |
-| `amount_mismatch` | Amount mismatch |
-| `recon_status` | Recon status |
-| `user_access` | User access |
-| `audit_query` | Audit log |
-| `login_help` | Login help |
-| `other` | Other |
-
-The labels are defined as `LABELS` in `src/intent_agent/agent/classify.py`.
-
-## Architecture
-
-```mermaid
-flowchart LR
-  subgraph training [Batch training]
-    TR[data/train.json] --> EV[evaluation]
-    EV --> MEM1[memory: add lessons]
-    EV --> OPRO[optimizer: new prompt]
-    OPRO --> RES[(storage/results.json)]
-  end
-  subgraph inference [Classify]
-    RES --> CL[agent.classify]
-    DB[(storage/memory_db Chroma)] --> CL
-    CL --> LLM[OpenRouter LLM]
-  end
-  UI[Streamlit UI] --> API[FastAPI]
-  API --> training
-  API --> inference
-```
-
-| Piece | Role |
-|-------|------|
-| `storage/results.json` | Best prompt, training log, and test scores. Written by training. |
-| `storage/memory_db/` | Chroma collection `lessons`. Holds short rules and their scores. |
-| Default prompt | Used when `results.json` does not exist yet, or when a request turns memory and the trained prompt off. |
+- Classifies messages into a fixed set of intent labels.
+- Trains an improved prompt from the examples in `data/train.json`.
+- Stores and retrieves lessons from previous mistakes using ChromaDB.
+- Accepts user feedback to reinforce or correct retrieved lessons.
+- Provides a FastAPI backend and a Streamlit interface.
 
 ## Requirements
 
-- Python **3.14** or newer (`pyproject.toml`)
+- Python 3.14 or newer
 - [uv](https://docs.astral.sh/uv/)
-- An OpenRouter API key
+- An [OpenRouter API key](https://openrouter.ai/keys)
 
 ## Setup
 
+From the project directory:
+
 ```bash
-cd intent-agent
-uv sync
+uv sync --group dev
 cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` and add your API key:
 
 ```env
 OPENROUTER_API_KEY=your_key_here
 OPENROUTER_MODEL=openai/gpt-4o-mini
+# Optional:
 # OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+DEBUG=false
 ```
 
-Settings load through Pydantic Settings in `src/intent_agent/config.py`. The API key is never printed. Restart the API after changing `.env`, because settings are cached.
+The model and base URL can be changed through these environment variables.
+Settings are loaded from `.env`; restart the API or training process after
+changing them. Do not commit `.env` or share your API key.
 
-## Running the app
+### Debug output
 
-Use two terminals from the project root.
+`DEBUG` is off by default. Set `DEBUG=true` in `.env` or in the process
+environment to print training progress and memory lesson diagnostics:
 
-**Terminal 1: API**
+```bash
+DEBUG=true uv run python -m intent_agent.training.train
+```
+
+The `scripts/inspect_chroma.py` command always prints its report; printing the
+database inspection is that script's purpose.
+
+## Run the application
+
+Start the API in one terminal:
 
 ```bash
 uv run uvicorn intent_agent.api.app:app --reload
 ```
 
-API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+The API and interactive OpenAPI documentation are available at
+[http://127.0.0.1:8000](http://127.0.0.1:8000) and
+[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-**Terminal 2: UI**
+Start the Streamlit interface in a second terminal:
 
 ```bash
 uv run streamlit run src/intent_agent/ui/streamlit_app.py
 ```
 
-Open [http://localhost:8501](http://localhost:8501). Start the API first, because the UI calls it.
+Open [http://localhost:8501](http://localhost:8501). The UI requires the API to
+be running. The API has no authentication configured, so keep it on a trusted,
+local network.
 
-### Training from the command line
+## Train the classifier
+
+Run five training rounds from the command line:
 
 ```bash
 uv run python -m intent_agent.training.train
 ```
 
-This runs the same loop as the **Run training** button, with 5 rounds.
+Training can also be started in the UI or with `POST /train?rounds=5`. Each
+round:
 
-## The UI
+1. Evaluates the current prompt against every example in `data/train.json`.
+2. Updates scores for lessons used during those classifications.
+3. Asks the language model to create lessons for up to the first three
+   mistakes, then stores new, non-duplicate lessons.
+4. Removes lessons with a score of -2 or lower.
+5. Asks the language model to rewrite the prompt using the prompt history and
+   up to five mistakes.
 
-### Sidebar
+After the rounds, the best-scoring prompt is evaluated against
+`data/test.json`. Training writes the prompt and scores to
+`storage/results.json`. The test set is used for evaluation, not for learning.
 
-| Control | What it does |
-|---------|----------------|
-| **Which agent replies in chat** | **Normal**: original prompt, no memory, no feedback. **Self-improving**: trained prompt plus retrieved lessons, with Yes/No feedback. |
-| **Lessons** | Every lesson in memory with its score. Refreshes after chat feedback and after training. |
+## Intent labels
 
-### Tabs
+The classifier returns one of these labels:
 
-| Tab | What it does |
-|-----|----------------|
-| **Chat** | Chat window with a **Typing...** indicator while the API works. Self-improving mode shows lessons used for each reply and asks **Is that right?** with Yes and No. Choosing No opens an intent picker. |
-| **Before vs After** | Classifies one message twice: original prompt with no memory, then trained prompt with retrieved lessons. Enter the correct intent to mark each guess right or wrong. |
-| **Demo set** | Runs every message in `data/demo.json` before and after, then shows the number correct and a table. |
-| **Training results** | Train-score chart, before and after test scores, prompt history, first and best prompt, and the lessons table. **Compute before score** runs once and is saved. **Run training** is at the bottom. |
+| Label | Meaning |
+|---|---|
+| `match_invoice` | Match a payment or transaction to an invoice |
+| `unmatched_items` | Find or explain unmatched items |
+| `upload_document` | Upload a document |
+| `amount_mismatch` | Investigate an amount discrepancy |
+| `recon_status` | Ask about reconciliation status |
+| `user_access` | Ask about user access or permissions |
+| `audit_query` | Ask about an audit log or activity |
+| `login_help` | Get help signing in |
+| `other` | Any other intent |
 
-## How batch training works
+The label list is defined in `src/intent_agent/agent/classify.py`.
 
-Each round:
+## Feedback and memory
 
-1. **Evaluate.** Classify every example in `data/train.json` with the current prompt. Record the mistakes.
-2. **Remember.** Ask the LLM for a short rule for each of the first 3 mistakes. Save each rule with score 0. A rule is skipped if a very similar lesson already exists (distance under 0.2).
-3. **Reinforce.** Each lesson retrieved during evaluation gets +1 if that guess was right and −1 if it was wrong.
-4. **Prune.** `memory.cleanup()` deletes lessons with score −2 or lower.
-5. **Rewrite the prompt.** The LLM sees the prompt history and up to 5 mistakes, then writes a new prompt inside `<PROMPT></PROMPT>`.
+Classification can use the best prompt saved by training and retrieve up to
+three relevant lessons from ChromaDB. Both options can be disabled for
+`POST /classify` using its `use_best_prompt` and `use_memory` fields.
 
-After the rounds, the prompt with the best training score is evaluated on `data/test.json`. The result is written to `storage/results.json`.
+Feedback is submitted to `POST /feedback` with the message, predicted label,
+and correct label:
 
-The test set is not used for learning. Test evaluation does not add or change lessons.
+- If the prediction was correct, each retrieved lesson's score increases by 1.
+- If it was incorrect, each retrieved lesson's score decreases by 1, and the
+  language model creates a lesson for the correction.
+- New lessons start with a score of 0. Similar lessons may be skipped.
+- Lesson cleanup runs during training, not during feedback.
 
-## How chat feedback works
+Lessons and their scores are stored under `storage/memory_db/`.
 
-Feedback exists only in **Self-improving** mode.
+## API
 
-1. `POST /classify` with `use_memory: true` and `use_best_prompt: true` returns the intent and the lessons that were retrieved.
-2. The user presses **Yes** or **No**. The UI calls `POST /feedback`.
+The API is intended for local development and is available at
+`http://127.0.0.1:8000`.
 
-| Button | Effect |
-|--------|--------|
-| **Yes** | +1 on each lesson that was retrieved for that message. No new lesson is saved. The reply is "Thanks. That guess was right, so no new lesson was added." |
-| **No** | −1 on each retrieved lesson. The LLM writes one rule for the mistake. The rule is saved at score 0 unless a very similar lesson already exists. The user then picks the correct intent. |
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/train?rounds=5` | Run training and save the results. |
+| `GET` | `/results` | Read saved training results. Returns 404 before the first training run. |
+| `GET` | `/results?ensure_before=true` | Also calculate and save the baseline test score if it has not been calculated yet. |
+| `POST` | `/classify` | Classify a message. `use_memory` and `use_best_prompt` default to `true`. |
+| `POST` | `/feedback` | Reinforce or correct lessons based on a user's feedback. |
+| `GET` | `/lessons` | List lessons and their scores. |
 
-Feedback never deletes lessons. Cleanup runs only during training.
-
-A new lesson starts at score 0. A score of 0 does not mean the lesson is removed.
-
-## API reference
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/train?rounds=5` | Run the training loop. Returns `log`, `best_prompt`, and `test_score`. |
-| `GET` | `/results` | Read `storage/results.json`. Returns **404** until training has run. |
-| `GET` | `/results?ensure_before=true` | Score the original prompt on the test set once, with no memory, and save `test_score_before`. |
-| `POST` | `/classify` | Body: `{"text", "use_memory", "use_best_prompt"}`. Both flags default to `true`. Returns `intent`, `prompt`, and `lessons`. |
-| `POST` | `/feedback` | Body: `{"text", "predicted", "correct"}`. Same intent returns `{"learned": "confirmed"}`. A different intent returns `{"learned": "corrected", "lesson": "..."}`. |
-| `GET` | `/lessons` | Returns `[{"lesson", "score"}, ...]`. |
-
-### Example
+Example classification request:
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/classify \
+curl -X POST http://127.0.0.1:8000/classify \
   -H 'Content-Type: application/json' \
-  -d '{"text": "Who tied payment 9912 to invoice INV-88?", "use_memory": false, "use_best_prompt": false}'
+  -d '{
+    "text": "Match payment 9912 to invoice INV-88",
+    "use_memory": true,
+    "use_best_prompt": true
+  }'
+```
 
-curl -s -X POST http://127.0.0.1:8000/feedback \
+Example feedback request:
+
+```bash
+curl -X POST http://127.0.0.1:8000/feedback \
   -H 'Content-Type: application/json' \
-  -d '{"text": "Who tied payment 9912 to invoice INV-88?", "predicted": "match_invoice", "correct": "audit_query"}'
+  -d '{
+    "text": "Who matched payment 9912 to invoice INV-88?",
+    "predicted": "match_invoice",
+    "correct": "audit_query"
+  }'
 ```
 
-## Data
+## Data and generated files
 
-Each data file is a JSON array of objects with `text` and `intent`:
+Each dataset is a JSON array of objects with `text` and `intent` fields.
 
-| File | Used for |
-|------|----------|
-| `data/train.json` | Training: evaluation, lessons, and prompt rewrites |
-| `data/test.json` | Held-out score after training, and the before score |
-| `data/demo.json` | The Demo set tab |
+| File | Purpose |
+|---|---|
+| `data/train.json` | Examples used for training and prompt optimization. |
+| `data/test.json` | Held-out evaluation after training and baseline evaluation. |
+| `data/demo.json` | Examples displayed in the UI's Demo set. |
 
-The training set is deliberately hard. It includes confusable pairs such as audit log vs match invoice, upload vs match, amount gap vs unmatched, and recon vs unmatched.
+Training results and persistent memory are generated under `storage/`:
 
-## Configuration
+- `storage/results.json` contains the best prompt and evaluation results.
+- `storage/memory_db/` contains the ChromaDB lesson collection.
 
-| Setting | Where |
-|---------|-------|
-| Model, base URL, API key | `.env`, read by `src/intent_agent/config.py` |
-| Paths | `src/intent_agent/config.py`: `DATA_DIR`, `TRAIN_FILE`, `TEST_FILE`, `DEMO_FILE`, `STORAGE_DIR`, `MEMORY_DB_DIR`, `RESULTS_FILE` |
-| Training rounds | `POST /train?rounds=` or `run_training(rounds=5)` in `training/train.py` |
-| Lessons saved per round | First 3 mistakes, in `training/train.py` |
-| Mistakes shown to the prompt rewriter | Up to 5, in `optimizer/opro.py` |
-| Lessons retrieved per message | `k=3`, in `agent/classify.py` |
-| Duplicate threshold | Distance under 0.2, in `memory/store.py` |
-| Prune threshold | Score −2 or lower, in `memory/store.py` |
+These are local runtime data, not source files.
 
-## Project structure
+## Inspect or reset memory
 
-```
-intent-agent/
-├── src/intent_agent/
-│   ├── config.py          Settings from .env and all project paths
-│   ├── llm.py             OpenRouter client
-│   ├── agent/             classify(), LABELS, DEFAULT_PROMPT
-│   ├── memory/            Chroma lesson store: add, search, update, cleanup
-│   ├── optimizer/         OPRO prompt rewrite and make_lesson()
-│   ├── evaluation/        evaluate(): accuracy, mistakes, score updates
-│   ├── training/          run_training() loop
-│   ├── tools/             reserved for agent tools
-│   ├── api/               FastAPI app
-│   └── ui/                Streamlit app
-├── data/                  train.json, test.json, demo.json
-├── storage/               memory_db/ and results.json (generated, gitignored)
-├── scripts/               inspect_chroma.py (read-only memory inspector)
-├── tests/                 import smoke tests
-├── .github/workflows/     Ruff CI
-├── .env.example
-├── pyproject.toml
-└── README.md
-```
-
-## Inspecting memory
+Print a read-only report about the local ChromaDB data:
 
 ```bash
 uv run python scripts/inspect_chroma.py
 ```
 
-This prints the files on disk, the collection, every lesson with its score, and a sample query. It does not change anything.
+To reset memory, stop the API, UI, and any training process, then remove the
+database directory:
 
-## Resetting memory
+```bash
+rm -rf storage/memory_db
+```
 
-Lessons live in `storage/memory_db/` (collection `lessons`).
+The database is recreated when the application next uses it. To also remove
+the saved prompt and training results:
 
-1. Stop the API, the UI, and any training run.
-2. Delete the memory:
-
-   ```bash
-   rm -rf storage/memory_db
-   ```
-
-3. Optional: also delete the saved prompt and training log:
-
-   ```bash
-   rm -f storage/results.json
-   ```
-
-The memory folder is recreated the next time the app starts. There is no HTTP endpoint to reset memory.
+```bash
+rm -f storage/results.json
+```
 
 ## Development
+
+Install development dependencies and run the checks:
 
 ```bash
 uv sync --group dev
@@ -257,33 +221,21 @@ uv run ruff check .
 uv run pytest
 ```
 
-- Ruff checks `E`, `F`, and `UP`. `E501` and `E741` are ignored.
-- `tests/test_imports.py` imports every module and checks the data paths. The Streamlit file is compiled, not imported.
-- CI runs `uv run ruff check .` on pushes to `main` and on pull requests.
+## Project layout
 
-For commit and branch rules, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Git
-
-These paths are gitignored and never committed:
-
-- `.env`, which holds your API key
-- `storage/`, which holds the Chroma memory and `results.json`
-- Virtual environments, caches, and editor files
-
-Commit `data/` changes when you change the training, test, or demo sets.
-
-## Troubleshooting
-
-| Symptom | Likely cause |
-|---------|--------------|
-| UI says it could not reach the API | The API is not running. Start `uv run uvicorn intent_agent.api.app:app` on port **8000**. |
-| `ModuleNotFoundError: intent_agent` | Run `uv sync` so the package is installed from `src/`. |
-| Results or classify errors about a missing file | Train once, or use the default prompt until `storage/results.json` exists. |
-| Sidebar lessons do not match the Training tab | Restart Streamlit so it loads the current code. |
-| Training is slow | Each round calls the LLM for every example, plus the prompt rewrite and lesson writes. Reduce `rounds` or shrink `train.json` for a quick run. |
-| Too many similar lessons | Check the duplicate threshold in `memory/store.py`, or reset memory. |
-
-## Author
-
-Chathuri Perera: chathuri@gluonforce.com
+```text
+src/intent_agent/
+  agent/       Classification and intent labels
+  api/         FastAPI endpoints
+  evaluation/  Dataset evaluation and lesson score updates
+  memory/      ChromaDB lesson storage and retrieval
+  optimizer/   Prompt rewrites and lesson generation
+  training/    Batch training loop
+  ui/          Streamlit application
+  config.py    Environment settings and project paths
+  llm.py       OpenRouter client
+data/          Training, test, and demo datasets
+scripts/       ChromaDB inspection utility
+storage/       Generated training results and local memory
+tests/         Import and debug-output tests
+```

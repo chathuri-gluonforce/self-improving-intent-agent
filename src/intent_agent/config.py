@@ -28,7 +28,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    openrouter_api_key: SecretStr
+    debug: bool = False
+    openrouter_api_key: SecretStr | None = None
     openrouter_model: str = Field(
         default="openai/gpt-4o-mini",
         description="OpenRouter model id (see https://openrouter.ai/models)",
